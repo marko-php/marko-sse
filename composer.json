@@ -5,15 +5,19 @@
     "type": "marko-module",
     "require": {
         "php": "^8.5",
+        "marko/cache": "self.version",
+        "marko/config": "self.version",
         "marko/core": "self.version",
         "marko/routing": "self.version"
     },
     "suggest": {
+        "marko/broadcasting": "For large audiences: push events through a Mercure or Pusher-protocol hub instead of holding PHP workers",
         "marko/pubsub": "For real-time pub/sub-driven SSE streams"
     },
     "require-dev": {
-        "pestphp/pest": "^4.0",
-        "marko/testing": "self.version"
+        "marko/cache-array": "self.version",
+        "marko/testing": "self.version",
+        "pestphp/pest": "^4.0"
     },
     "autoload": {
         "psr-4": {

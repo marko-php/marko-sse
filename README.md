@@ -2,6 +2,8 @@
 
 Server-Sent Events for Marko — push real-time updates to browsers without WebSockets.
 
+Each open stream holds a PHP worker, so this suits low-concurrency streams (dashboards, job progress). For large audiences use [marko/broadcasting](https://marko.build/docs/packages/broadcasting/); cap concurrent streams with the optional `sse.max_connections` guard.
+
 ## Installation
 
 ```bash

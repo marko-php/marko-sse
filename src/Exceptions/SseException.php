@@ -27,6 +27,24 @@ class SseException extends MarkoException
         );
     }
 
+    public static function invalidMaxConnections(int $maxConnections): self
+    {
+        return new self(
+            message: "sse.max_connections must be at least 1, got $maxConnections.",
+            context: 'While building SseConnectionLimiter from config/sse.php',
+            suggestion: 'Set SSE_MAX_CONNECTIONS to a positive number, or leave it unset (null) to disable the connection guard.',
+        );
+    }
+
+    public static function processLocalCache(string $cacheClass): self
+    {
+        return new self(
+            message: "The SSE connection guard needs a cache shared across PHP processes, but '$cacheClass' keeps data inside one process.",
+            context: 'sse.max_connections is set, so open streams are counted in the cache bound to CacheInterface',
+            suggestion: 'Install a shared cache driver (marko/cache-redis, or marko/cache-file on a single server), or unset sse.max_connections.',
+        );
+    }
+
     public static function invalidField(
         string $field,
         string $value,

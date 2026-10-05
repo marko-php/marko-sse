@@ -32,6 +32,14 @@ readonly class SseStream implements IteratorAggregate
         }
     }
 
+    /**
+     * Maximum stream duration in seconds.
+     */
+    public function timeout(): int
+    {
+        return $this->timeout;
+    }
+
     public function close(): void
     {
         $this->subscription?->cancel();
