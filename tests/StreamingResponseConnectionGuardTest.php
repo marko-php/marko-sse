@@ -125,6 +125,20 @@ describe('StreamingResponse connection guard', function (): void {
             ->and($cache->deletes)->toBeEmpty();
     });
 
+    it('acquires no connection slot and does not stream when the body was omitted', function (): void {
+        $cache = new RecordingCache();
+        $limiter = new SseConnectionLimiter(cache: $cache, maxConnections: 1, retryAfter: 5);
+        $polled = false;
+        $response = guardedStreamingResponse(singleEventStream(function () use (&$polled): void {
+            $polled = true;
+        }), $limiter)->withoutBody();
+
+        expect(captureSend($response))->toBe('')
+            ->and($polled)->toBeFalse()
+            ->and($cache->increments)->toBeEmpty()
+            ->and($cache->deletes)->toBeEmpty();
+    });
+
     it('responds 503 with Retry-After when no slot is free', function (): void {
         $limiter = new SseConnectionLimiter(cache: new RecordingCache(), maxConnections: 1, retryAfter: 7);
         $response = new StreamingResponse(stream: singleEventStream(), connectionLimiter: $limiter);

@@ -42,6 +42,14 @@ class StreamingResponse extends Response
     #[Override]
     public function send(): void
     {
+        if ($this->isBodyOmitted()) {
+            // HEAD request: send the stream's headers, never open the stream.
+            $this->stream->close();
+            parent::send();
+
+            return;
+        }
+
         $slot = null;
 
         if ($this->connectionLimiter?->isLimited()) {

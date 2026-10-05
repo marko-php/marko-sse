@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Marko\Routing\Http\Response;
+use Marko\Sse\SseEvent;
 use Marko\Sse\SseStream;
 use Marko\Sse\StreamingResponse;
 
@@ -161,6 +162,30 @@ describe('StreamingResponse', function (): void {
             'X-Accel-Buffering' => 'no',
             'X-Custom-Header' => 'custom-value',
         ]);
+    });
+
+    it('sends headers without streaming when the body was omitted', function (): void {
+        $iterated = false;
+        $response = new StreamingResponse(
+            stream: new SseStream(
+                dataProvider: function () use (&$iterated): array {
+                    $iterated = true;
+
+                    return [new SseEvent(data: 'payload')];
+                },
+                timeout: 0,
+            ),
+        );
+
+        $stripped = $response->withoutBody();
+
+        ob_start();
+        $stripped->send();
+        $output = ob_get_clean();
+
+        expect($stripped)->toBeInstanceOf(StreamingResponse::class)
+            ->and($output)->toBe('')
+            ->and($iterated)->toBeFalse();
     });
 
     it('emits the same header lines for a streaming response subclass', function (): void {
