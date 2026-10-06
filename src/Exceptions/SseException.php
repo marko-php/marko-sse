@@ -50,11 +50,11 @@ class SseException extends MarkoException
         string $value,
     ): self {
         return new self(
-            message: "SSE field '$field' must not contain CR or LF characters.",
-            context: "SseEvent was constructed with a '$field' value containing a carriage return or line feed: " . json_encode(
+            message: "SSE field '$field' must not contain CR, LF or NUL characters.",
+            context: "SseEvent was constructed with a '$field' value containing a carriage return, line feed or NUL: " . json_encode(
                 $value,
             ),
-            suggestion: "Remove all CR (\\r) and LF (\\n) characters from the '$field' value before constructing SseEvent.",
+            suggestion: "Remove all CR (\\r), LF (\\n) and NUL (\\0) characters from the '$field' value before constructing SseEvent.",
         );
     }
 }

@@ -90,3 +90,46 @@ it('allows an integer id unchanged', function (): void {
 
     expect($event->format())->toBe("id: 42\ndata: hello\n\n");
 });
+
+it('renders lone-CR injected fields as data lines of a single event', function (): void {
+    $event = new SseEvent(data: "hi\r\revent: admin\rid: 999\rdata: forged");
+
+    $output = $event->format();
+
+    expect($output)->toBe(
+        "data: hi\ndata: \ndata: event: admin\ndata: id: 999\ndata: data: forged\n\n",
+    )
+        ->and($output)->not->toContain("\r")
+        ->and(substr_count($output, "\n\n"))->toBe(1);
+
+    foreach (explode("\n", rtrim($output, "\n")) as $line) {
+        expect($line)->toStartWith('data: ');
+    }
+});
+
+it('splits CRLF data into separate data lines', function (): void {
+    $event = new SseEvent(data: "line one\r\nline two");
+
+    expect($event->format())->toBe("data: line one\ndata: line two\n\n");
+});
+
+it('splits lone-CR data into separate data lines', function (): void {
+    $event = new SseEvent(data: "line one\rline two");
+
+    expect($event->format())->toBe("data: line one\ndata: line two\n\n");
+});
+
+it('throws SseException when a string id contains a carriage return', function (): void {
+    expect(fn () => new SseEvent(data: 'hello', id: "bad\rid"))
+        ->toThrow(SseException::class);
+});
+
+it('throws SseException when a string id contains a NUL character', function (): void {
+    expect(fn () => new SseEvent(data: 'hello', id: "bad\0id"))
+        ->toThrow(SseException::class, "SSE field 'id' must not contain CR, LF or NUL characters.");
+});
+
+it('throws SseException when event contains a NUL character', function (): void {
+    expect(fn () => new SseEvent(data: 'hello', event: "bad\0event"))
+        ->toThrow(SseException::class, "SSE field 'event' must not contain CR, LF or NUL characters.");
+});
