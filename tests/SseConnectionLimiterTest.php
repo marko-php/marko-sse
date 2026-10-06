@@ -10,6 +10,7 @@ use Marko\Core\Container\Container;
 use Marko\Sse\Exceptions\SseException;
 use Marko\Sse\SseConnectionLimiter;
 use Marko\Sse\Tests\Support\RecordingCache;
+use Marko\Testing\Fake\FakeClock;
 use Marko\Testing\Fake\FakeConfigRepository;
 
 describe('SseConnectionLimiter', function (): void {
@@ -69,7 +70,7 @@ describe('SseConnectionLimiter', function (): void {
     it('refuses the process-local array cache driver', function (): void {
         expect(
             fn () => new SseConnectionLimiter(
-                cache: new ArrayCacheDriver(new CacheConfig(new FakeConfigRepository())),
+                cache: new ArrayCacheDriver(new CacheConfig(new FakeConfigRepository()), new FakeClock()),
                 maxConnections: 10,
                 retryAfter: 5,
             ),
@@ -79,7 +80,7 @@ describe('SseConnectionLimiter', function (): void {
 
     it('allows the array cache driver when the guard is disabled', function (): void {
         $limiter = new SseConnectionLimiter(
-            cache: new ArrayCacheDriver(new CacheConfig(new FakeConfigRepository())),
+            cache: new ArrayCacheDriver(new CacheConfig(new FakeConfigRepository()), new FakeClock()),
             maxConnections: null,
             retryAfter: 5,
         );
