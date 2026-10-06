@@ -8,12 +8,15 @@ use Closure;
 use Generator;
 use IteratorAggregate;
 use JsonException;
+use Marko\Clock\SystemClock;
 use Marko\PubSub\Subscription;
 use Marko\Sse\Exceptions\SseException;
+use Psr\Clock\ClockInterface;
 
 readonly class SseStream implements IteratorAggregate
 {
     /**
+     * @param ClockInterface $clock Measures the heartbeat interval and timeout; pass a FakeClock in tests
      * @throws SseException
      */
     public function __construct(
@@ -22,6 +25,7 @@ readonly class SseStream implements IteratorAggregate
         private int $heartbeatInterval = 15,
         private int $timeout = 300,
         private int $pollInterval = 1,
+        private ClockInterface $clock = new SystemClock(),
     ) {
         if ($this->dataProvider !== null && $this->subscription !== null) {
             throw SseException::ambiguousSource();
@@ -66,13 +70,13 @@ readonly class SseStream implements IteratorAggregate
      */
     private function iterateSubscription(): Generator
     {
-        $startTime = time();
-        $lastActivity = time();
+        $startTime = $this->now();
+        $lastActivity = $this->now();
         $iterator = $this->subscription->getIterator();
         $iterator->rewind();
 
         while ($iterator->valid()) {
-            if (time() - $startTime >= $this->timeout) {
+            if ($this->now() - $startTime >= $this->timeout) {
                 return;
             }
 
@@ -84,11 +88,11 @@ readonly class SseStream implements IteratorAggregate
                     event: $message->channel,
                 );
                 yield $event->format();
-                $lastActivity = time();
+                $lastActivity = $this->now();
             } else {
-                if (time() - $lastActivity >= $this->heartbeatInterval) {
+                if ($this->now() - $lastActivity >= $this->heartbeatInterval) {
                     yield ": keepalive\n\n";
-                    $lastActivity = time();
+                    $lastActivity = $this->now();
                 }
 
                 sleep($this->pollInterval);
@@ -104,8 +108,8 @@ readonly class SseStream implements IteratorAggregate
      */
     private function iterateDataProvider(): Generator
     {
-        $startTime = time();
-        $lastHeartbeat = time();
+        $startTime = $this->now();
+        $lastHeartbeat = $this->now();
 
         do {
             $events = ($this->dataProvider)();
@@ -114,19 +118,27 @@ readonly class SseStream implements IteratorAggregate
             foreach ($events as $event) {
                 yield $event->format();
                 $hasEvents = true;
-                $lastHeartbeat = time();
+                $lastHeartbeat = $this->now();
             }
 
-            if (!$hasEvents && (time() - $lastHeartbeat) >= $this->heartbeatInterval) {
+            if (!$hasEvents && ($this->now() - $lastHeartbeat) >= $this->heartbeatInterval) {
                 yield ": keepalive\n\n";
-                $lastHeartbeat = time();
+                $lastHeartbeat = $this->now();
             }
 
-            if (time() - $startTime >= $this->timeout) {
+            if ($this->now() - $startTime >= $this->timeout) {
                 return;
             }
 
             sleep($this->pollInterval);
         } while (true);
+    }
+
+    /**
+     * Current unix time in seconds, read from the injected clock.
+     */
+    private function now(): int
+    {
+        return $this->clock->now()->getTimestamp();
     }
 }

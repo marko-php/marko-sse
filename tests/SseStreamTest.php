@@ -7,6 +7,7 @@ use Marko\PubSub\Subscription;
 use Marko\Sse\Exceptions\SseException;
 use Marko\Sse\SseEvent;
 use Marko\Sse\SseStream;
+use Marko\Testing\Fake\FakeClock;
 
 describe('SseStream', function (): void {
     it('creates SseStream with subscription parameter', function (): void {
@@ -155,16 +156,19 @@ describe('SseStream', function (): void {
 
     it('yields events from multiple data provider calls across ticks', function (): void {
         $callCount = 0;
+        $clock = new FakeClock();
         $stream = new SseStream(
-            dataProvider: function () use (&$callCount): array {
+            dataProvider: function () use (&$callCount, $clock): array {
                 $callCount++;
+                $clock->travel('+1 second');
 
                 return $callCount <= 2
                     ? [new SseEvent(data: "event-$callCount")]
                     : [];
             },
-            timeout: 1,
+            timeout: 3,
             pollInterval: 0,
+            clock: $clock,
         );
 
         $chunks = array_values(array_filter(
@@ -172,7 +176,7 @@ describe('SseStream', function (): void {
             fn (string $chunk): bool => str_starts_with($chunk, 'data:'),
         ));
 
-        expect(count($chunks))->toBeGreaterThanOrEqual(2);
+        expect($chunks)->toBe(["data: event-1\n\n", "data: event-2\n\n"]);
     });
 
     it('does not yield heartbeat when events were sent within interval', function (): void {

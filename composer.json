@@ -5,6 +5,7 @@
     "type": "marko-module",
     "require": {
         "php": "^8.5",
+        "marko/clock": "self.version",
         "marko/cache": "self.version",
         "marko/config": "self.version",
         "marko/core": "self.version",
